@@ -1,0 +1,374 @@
+import { useState, useEffect, useRef } from "react";
+
+const STATES = {
+  GA: {
+    name: "Georgia", rank: 1, flag: "🍑",
+    capexRate: 0.058, jobRate: 4000,
+    taxCredit: 0.38, grants: 0.22, infrastructure: 0.20, workforce: 0.20,
+    programs: [
+      { name: "Job Tax Credit", detail: "Up to $4,000/job annually for 5 years; lower thresholds in rural areas" },
+      { name: "Investment Tax Credit", detail: "1%–8% of qualified capex for manufacturers (3+ yrs in state)" },
+      { name: "Quick Start Training", detail: "Free, customized workforce training — one of the nation's best" },
+      { name: "OneGeorgia Authority", detail: "Grants & loans for rural and less-developed county projects" },
+    ],
+    note: "#1 for doing business 12 consecutive years (Area Development, 2025)",
+    color: "#ef4444", accent: "#fca5a5",
+  },
+  TX: {
+    name: "Texas", rank: 2, flag: "⭐",
+    capexRate: 0.050, jobRate: 5000,
+    taxCredit: 0.30, grants: 0.28, infrastructure: 0.22, workforce: 0.20,
+    programs: [
+      { name: "Texas Enterprise Fund (TEF)", detail: "$1,000–$10,000 per job created; requires significant capex" },
+      { name: "Sales Tax Exemptions", detail: "Machinery, equipment & raw materials used in production" },
+      { name: "Freeport Exemption", detail: "Tax relief on goods-in-transit within 175 days (local approval)" },
+      { name: "Chapter 313 Successor", detail: "Local property tax abatements for large industrial projects" },
+    ],
+    note: "#1 for site availability & workforce (Area Development 2025); no corporate income tax",
+    color: "#3b82f6", accent: "#93c5fd",
+  },
+  NC: {
+    name: "North Carolina", rank: 3, flag: "🌲",
+    capexRate: 0.047, jobRate: 3500,
+    taxCredit: 0.35, grants: 0.25, infrastructure: 0.20, workforce: 0.20,
+    programs: [
+      { name: "Job Development Investment Grant (JDIG)", detail: "Performance-based grants tied to new payroll over up to 12 years" },
+      { name: "One NC Fund", detail: "Discretionary cash grants for highly competitive projects" },
+      { name: "Site Development Fund", detail: "Infrastructure readiness funding for industrial sites" },
+      { name: "NC Community College Training", detail: "Customized workforce training grants for new facilities" },
+    ],
+    note: "#1 for qualified labor access; Amazon committed $10B in data centers (CNBC 2025)",
+    color: "#8b5cf6", accent: "#c4b5fd",
+  },
+  SC: {
+    name: "South Carolina", rank: 4, flag: "🌴",
+    capexRate: 0.055, jobRate: 7500,
+    taxCredit: 0.32, grants: 0.28, infrastructure: 0.22, workforce: 0.18,
+    programs: [
+      { name: "Job Development Credit (JDC)", detail: "Payroll tax rebate; up to $25,000/job depending on county tier" },
+      { name: "Economic Development Bonds", detail: "Infrastructure funding tied to job creation thresholds" },
+      { name: "Sales Tax Exemptions", detail: "Manufacturing equipment, raw materials & energy exempt" },
+      { name: "ReadySC Training", detail: "Free, company-specific workforce training for new facilities" },
+    ],
+    note: "#1 for business incentive programs (Area Development 2025); top site readiness state",
+    color: "#f97316", accent: "#fdba74",
+  },
+  TN: {
+    name: "Tennessee", rank: 5, flag: "🎵",
+    capexRate: 0.048, jobRate: 4500,
+    taxCredit: 0.35, grants: 0.25, infrastructure: 0.22, workforce: 0.18,
+    programs: [
+      { name: "Jobs Tax Credit", detail: "$4,500 per new job; enhanced credits available by location" },
+      { name: "FastTrack Job Training Assistance", detail: "Grants for workforce training based on new hires (min. 25 jobs)" },
+      { name: "Industrial Infrastructure Program (TIIP)", detail: "Infrastructure grants for substantial capital investments" },
+      { name: "Sales & Use Tax Exemptions", detail: "Manufacturing equipment, industrial machinery & materials" },
+    ],
+    note: "#1 for business incentive programs (Area Development 2025); no state income tax",
+    color: "#f59e0b", accent: "#fcd34d",
+  },
+  IN: {
+    name: "Indiana", rank: 6, flag: "🏎️",
+    capexRate: 0.10, jobRate: 3000,
+    taxCredit: 0.35, grants: 0.25, infrastructure: 0.20, workforce: 0.20,
+    programs: [
+      { name: "Hoosier Business Investment (HBI) Credit", detail: "Up to 10% of qualified capital investment costs" },
+      { name: "Skills Enhancement Fund (SEF)", detail: "Training grants covering up to 50% of eligible workforce costs" },
+      { name: "EDGE Tax Credit", detail: "Payroll-based tax credit for creation of significant new jobs" },
+      { name: "Redevelopment Tax Credit", detail: "Investment in certified tech parks and brownfield redevelopment" },
+    ],
+    note: "#6 overall; top 5 for site readiness, climate resilience & EV investment (Area Development 2025)",
+    color: "#22c55e", accent: "#86efac",
+  },
+  VA: {
+    name: "Virginia", rank: 7, flag: "🏛️",
+    capexRate: 0.045, jobRate: 2500,
+    taxCredit: 0.35, grants: 0.28, infrastructure: 0.18, workforce: 0.19,
+    programs: [
+      { name: "Virginia Jobs Investment Program (VJIP)", detail: "Up to $1,000/job for training; requires min. 25 manufacturing jobs" },
+      { name: "Enterprise Zone Real Property Grant", detail: "Up to $500K cash grant for qualifying real property investment" },
+      { name: "Major Business Facility Job Tax Credit", detail: "$1,000 per net new job created above threshold" },
+      { name: "Governor's Opportunity Fund", detail: "Discretionary grants for highly competitive projects" },
+    ],
+    note: "#1 for business in CNBC 2024; top state for qualified labor access (Area Development 2025)",
+    color: "#06b6d4", accent: "#67e8f9",
+  },
+  OH: {
+    name: "Ohio", rank: 8, flag: "🌻",
+    capexRate: 0.052, jobRate: 3800,
+    taxCredit: 0.36, grants: 0.24, infrastructure: 0.22, workforce: 0.18,
+    programs: [
+      { name: "Job Creation Tax Credit (JCTC)", detail: "Refundable credit based on state income tax withheld; up to 15 years" },
+      { name: "Enterprise Zone Program", detail: "Property tax abatements for up to 15 years in designated zones" },
+      { name: "Workforce Training Grants", detail: "Up to 50% of eligible training costs funded by state" },
+      { name: "Ohio Tax Credit Authority", detail: "Negotiated credits for significant capital investment projects" },
+    ],
+    note: "Top 5 overall; #2 for site availability, water access & manufacturing (Area Development 2025)",
+    color: "#ec4899", accent: "#f9a8d4",
+  },
+  FL: {
+    name: "Florida", rank: 9, flag: "🌊",
+    capexRate: 0.043, jobRate: 3000,
+    taxCredit: 0.33, grants: 0.27, infrastructure: 0.22, workforce: 0.18,
+    programs: [
+      { name: "Qualified Target Industry (QTI) Tax Refund", detail: "Up to $3,000/job ($6,000 in rural areas) for target industries" },
+      { name: "Capital Investment Tax Credit (CITC)", detail: "Annual credit up to 5% of eligible capex for up to 20 years" },
+      { name: "Job Growth Grant Fund (JGGF)", detail: "Infrastructure improvements & workforce training grants" },
+      { name: "Innovation Incentive Program", detail: "For high-impact projects in target industries" },
+    ],
+    note: "Top 5 CNBC 2024; #1 state economy; fastest-growing labor force; no state income tax",
+    color: "#0ea5e9", accent: "#7dd3fc",
+  },
+  MI: {
+    name: "Michigan", rank: 10, flag: "🚗",
+    capexRate: 0.050, jobRate: 3500,
+    taxCredit: 0.35, grants: 0.25, infrastructure: 0.22, workforce: 0.18,
+    programs: [
+      { name: "Michigan Business Development Program", detail: "Performance-based grants for job creation and capital investment" },
+      { name: "MEGA Tax Credit", detail: "Up to 20-year single business tax credit for major projects" },
+      { name: "Strategic Site Readiness Program", detail: "Site preparation grants for large-scale industrial projects" },
+      { name: "Going PRO Talent Fund", detail: "Employer-based workforce training grants" },
+    ],
+    note: "Top 10 CNBC 2024 & 2025; rising performer for EV & advanced manufacturing investment",
+    color: "#a855f7", accent: "#d8b4fe",
+  },
+};
+
+const formatFull = (v) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
+const formatCurrency = (v) => {
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
+  return `$${v.toLocaleString()}`;
+};
+
+function AnimatedNumber({ value }) {
+  const [display, setDisplay] = useState(value);
+  const prev = useRef(value);
+  const raf = useRef(null);
+  useEffect(() => {
+    const start = prev.current, end = value, t0 = performance.now();
+    if (raf.current) cancelAnimationFrame(raf.current);
+    const go = (now) => {
+      const p = Math.min((now - t0) / 600, 1);
+      const e = 1 - Math.pow(1 - p, 3);
+      setDisplay(Math.round(start + (end - start) * e));
+      if (p < 1) raf.current = requestAnimationFrame(go);
+      else prev.current = end;
+    };
+    raf.current = requestAnimationFrame(go);
+    return () => cancelAnimationFrame(raf.current);
+  }, [value]);
+  return <>{display.toLocaleString()}</>;
+}
+
+function Slider({ label, min, max, value, onChange, formatLabel, accent, icon }) {
+  const pct = ((value - min) / (max - min)) * 100;
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ color: accent }}>{icon}</span>
+          <span style={{ color: "#94a3b8", fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 600 }}>{label}</span>
+        </div>
+        <div style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${accent}50`, borderRadius: "4px", padding: "4px 14px", color: accent, fontSize: "13px", fontWeight: 700, boxShadow: `0 0 10px ${accent}20` }}>
+          {formatLabel(value)}
+        </div>
+      </div>
+      <div style={{ position: "relative", height: "6px", marginBottom: "8px" }}>
+        <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,0.06)", borderRadius: "3px" }} />
+        <div style={{ position: "absolute", top: 0, left: 0, height: "100%", width: `${pct}%`, background: `linear-gradient(90deg,${accent}70,${accent})`, borderRadius: "3px", boxShadow: `0 0 8px ${accent}50`, transition: "width 0.04s" }} />
+        <div style={{ position: "absolute", top: "50%", left: `${pct}%`, transform: "translate(-50%,-50%)", width: "14px", height: "14px", borderRadius: "50%", background: accent, boxShadow: `0 0 0 3px rgba(0,0,0,0.6), 0 0 12px ${accent}`, pointerEvents: "none", transition: "left 0.04s" }} />
+        <input type="range" min={min} max={max} value={value} onChange={e => onChange(Number(e.target.value))} style={{ position: "absolute", inset: "-8px 0", width: "100%", opacity: 0, cursor: "pointer", height: "22px" }} />
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", color: "#334155", fontSize: "10px" }}>
+        <span>{formatLabel(min)}</span><span>{formatLabel(max)}</span>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  const [capital, setCapital] = useState(100_000_000);
+  const [jobs, setJobs] = useState(250);
+  const [sel, setSel] = useState("GA");
+  const s = STATES[sel];
+
+  const capexInc = capital * s.capexRate;
+  const jobInc = jobs * s.jobRate;
+  const total = capexInc + jobInc;
+  const baseline = capital * 0.05 + jobs * 2500;
+  const delta = total - baseline;
+
+  const maxVal = Object.values(STATES).reduce((m, st) => Math.max(m, capital * st.capexRate + jobs * st.jobRate), 0);
+
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600;700&family=Bebas+Neue&display=swap');
+        @keyframes fadeUp { from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)} }
+        @keyframes pulse { 0%,100%{text-shadow:0 0 40px var(--g1),0 0 80px var(--g2)}50%{text-shadow:0 0 70px var(--g1),0 0 140px var(--g2)} }
+        body{margin:0;background:#060b14}
+        .sbtn{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);color:#64748b;cursor:pointer;transition:all 0.18s;font-family:'IBM Plex Mono',monospace}
+        .sbtn:hover{background:rgba(255,255,255,0.05);color:#94a3b8}
+        ::-webkit-scrollbar{width:3px}
+        ::-webkit-scrollbar-thumb{background:#1e3a5f;border-radius:2px}
+      `}</style>
+      <div style={{ minHeight: "100vh", background: "linear-gradient(135deg,#060b14 0%,#0a1628 60%,#060b14 100%)", padding: "32px 20px", fontFamily: "'IBM Plex Mono',monospace", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "fixed", inset: 0, backgroundImage: "linear-gradient(rgba(30,58,95,0.13) 1px,transparent 1px),linear-gradient(90deg,rgba(30,58,95,0.13) 1px,transparent 1px)", backgroundSize: "40px 40px", pointerEvents: "none" }} />
+        <div style={{ position: "fixed", top: "-20%", right: "-10%", width: "500px", height: "500px", background: `radial-gradient(circle,${s.color}0a 0%,transparent 70%)`, pointerEvents: "none", transition: "background 0.5s" }} />
+
+        <div style={{ maxWidth: "820px", margin: "0 auto", position: "relative", zIndex: 10 }}>
+
+          {/* Header */}
+          <div style={{ animation: "fadeUp 0.5s ease both", marginBottom: "24px", display: "flex", alignItems: "center", gap: "12px" }}>
+            <div style={{ width: "3px", height: "28px", background: `linear-gradient(180deg,${s.color},${s.color}60)`, borderRadius: "2px", transition: "background 0.4s" }} />
+            <div>
+              <div style={{ color: s.color, fontSize: "10px", letterSpacing: "0.25em", textTransform: "uppercase", transition: "color 0.4s" }}>Hyphen Strategies · Site Selection Advisory</div>
+              <div style={{ color: "#f1f5f9", fontSize: "22px", fontFamily: "'Bebas Neue'", letterSpacing: "0.12em" }}>Industrial Site Incentive Calculator</div>
+            </div>
+          </div>
+
+          {/* State Selector */}
+          <div style={{ background: "rgba(10,22,40,0.85)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "12px", padding: "20px 22px", backdropFilter: "blur(20px)", boxShadow: "0 16px 40px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.04)", marginBottom: "12px", animation: "fadeUp 0.5s ease 0.05s both" }}>
+            <div style={{ color: "#475569", fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "12px" }}>▸ Select Target State — Top 10 for Industrial Site Selection (Area Development / CNBC, 2025)</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "8px" }}>
+              {Object.entries(STATES).map(([code, st]) => (
+                <button key={code} className="sbtn" onClick={() => setSel(code)} style={{ borderRadius: "7px", padding: "10px 4px", fontSize: "11px", textAlign: "center", letterSpacing: "0.05em", ...(sel === code ? { background: `${st.color}18`, border: `1px solid ${st.color}60`, boxShadow: `0 0 14px ${st.color}20`, color: st.accent } : {}) }}>
+                  <div style={{ fontSize: "16px", marginBottom: "3px" }}>{st.flag}</div>
+                  <div style={{ fontWeight: sel === code ? 700 : 400 }}>{code}</div>
+                  <div style={{ fontSize: "9px", color: sel === code ? st.color : "#334155" }}>#{st.rank}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* State info bar */}
+          <div style={{ background: `${s.color}0d`, border: `1px solid ${s.color}30`, borderRadius: "8px", padding: "12px 18px", marginBottom: "12px", display: "flex", alignItems: "center", gap: "12px", transition: "all 0.4s", animation: "fadeUp 0.4s ease 0.08s both" }}>
+            <span style={{ fontSize: "22px" }}>{s.flag}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: s.accent, fontSize: "12px", fontWeight: 700, letterSpacing: "0.08em", transition: "color 0.4s" }}>{s.name.toUpperCase()} — RANK #{s.rank}</div>
+              <div style={{ color: "#64748b", fontSize: "10px", marginTop: "2px" }}>{s.note}</div>
+            </div>
+            <div style={{ textAlign: "right", paddingLeft: "12px", borderLeft: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ color: "#475569", fontSize: "9px", letterSpacing: "0.1em", textTransform: "uppercase" }}>Capex Rate</div>
+              <div style={{ color: s.color, fontSize: "15px", fontWeight: 700, transition: "color 0.4s" }}>{(s.capexRate * 100).toFixed(0)}%</div>
+            </div>
+            <div style={{ textAlign: "right", paddingLeft: "12px", borderLeft: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ color: "#475569", fontSize: "9px", letterSpacing: "0.1em", textTransform: "uppercase" }}>Per Job</div>
+              <div style={{ color: s.color, fontSize: "15px", fontWeight: 700, transition: "color 0.4s" }}>{formatFull(s.jobRate)}</div>
+            </div>
+          </div>
+
+          {/* Main panel */}
+          <div style={{ background: "rgba(10,22,40,0.85)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "12px", padding: "26px 26px", backdropFilter: "blur(20px)", boxShadow: "0 32px 80px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.04)", marginBottom: "12px", animation: "fadeUp 0.5s ease 0.1s both" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "22px", paddingBottom: "16px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+              <div style={{ display: "flex", gap: "5px" }}>
+                {[s.color, "#3b82f6", "#f59e0b"].map((c, i) => <div key={i} style={{ width: "7px", height: "7px", borderRadius: "50%", background: c, boxShadow: `0 0 5px ${c}`, transition: "background 0.4s" }} />)}
+              </div>
+              <span style={{ color: "#334155", fontSize: "10px", letterSpacing: "0.14em" }}>REAL-TIME ANALYSIS · {s.name.toUpperCase()} STATE PROGRAMS</span>
+              <div style={{ marginLeft: "auto", color: "#22c55e", fontSize: "10px" }}>● LIVE</div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "30px", marginBottom: "26px" }}>
+              <Slider label="Capital Investment" icon="◈" min={10_000_000} max={500_000_000} value={capital} onChange={setCapital} formatLabel={formatCurrency} accent="#3b82f6" />
+              <Slider label="New Jobs Created" icon="◉" min={50} max={1000} value={jobs} onChange={setJobs} formatLabel={v => `${v.toLocaleString()} jobs`} accent={s.color} />
+            </div>
+            <div style={{ height: "1px", background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.07),transparent)", marginBottom: "22px" }} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "18px" }}>
+              {[
+                { label: `Capex Incentive (${(s.capexRate * 100).toFixed(0)}%)`, val: capexInc, color: "#3b82f6", icon: "◈" },
+                { label: `Jobs Incentive (${formatFull(s.jobRate)}/job)`, val: jobInc, color: s.color, icon: "◉" },
+              ].map(({ label, val, color, icon }) => (
+                <div key={label} style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", padding: "14px 16px" }}>
+                  <div style={{ color: "#64748b", fontSize: "10px", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "6px" }}>{icon} {label}</div>
+                  <div style={{ color, fontSize: "16px", fontWeight: 800 }}>{formatFull(val)}</div>
+                </div>
+              ))}
+            </div>
+            {/* Big total */}
+            <div style={{ background: `${s.color}08`, border: `1px solid ${s.color}30`, borderRadius: "10px", padding: "24px 24px", textAlign: "center", transition: "all 0.4s", boxShadow: `0 0 50px ${s.color}06` }}>
+              <div style={{ color: s.accent, fontSize: "10px", letterSpacing: "0.25em", textTransform: "uppercase", marginBottom: "8px", transition: "color 0.4s" }}>▸ Estimated {s.name} Incentive Package</div>
+              <div style={{ "--g1": `${s.color}90`, "--g2": `${s.color}40`, fontFamily: "'Bebas Neue'", fontSize: "clamp(40px,8vw,68px)", letterSpacing: "0.05em", color: s.color, lineHeight: 1, animation: "pulse 3s ease-in-out infinite", transition: "color 0.4s" }}>
+                $<AnimatedNumber value={total} />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginTop: "10px" }}>
+                <span style={{ color: "#334155", fontSize: "10px" }}>vs. generic baseline:</span>
+                <span style={{ color: delta >= 0 ? "#22c55e" : "#ef4444", fontSize: "11px", fontWeight: 700 }}>
+                  {delta >= 0 ? "+" : "-"}{formatFull(Math.abs(delta))} {delta >= 0 ? "▲" : "▼"}
+                </span>
+              </div>
+              <div style={{ color: "#1e3a5f", fontSize: "9px", letterSpacing: "0.1em", marginTop: "6px" }}>
+                FORMULA: ({(s.capexRate * 100).toFixed(0)}% × CAPEX) + ({formatFull(s.jobRate)} × JOBS)
+              </div>
+            </div>
+          </div>
+
+          {/* Programs + Breakdown */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+            <div style={{ background: "rgba(10,22,40,0.75)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "10px", padding: "18px 20px", animation: "fadeUp 0.5s ease 0.15s both" }}>
+              <div style={{ color: "#475569", fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "14px" }}>▸ Key {s.name} Programs</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {s.programs.map((p, i) => (
+                  <div key={i} style={{ borderLeft: `2px solid ${s.color}50`, paddingLeft: "10px" }}>
+                    <div style={{ color: s.accent, fontSize: "11px", fontWeight: 700, marginBottom: "2px", transition: "color 0.4s" }}>{p.name}</div>
+                    <div style={{ color: "#475569", fontSize: "10px", lineHeight: 1.5 }}>{p.detail}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ background: "rgba(10,22,40,0.75)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "10px", padding: "18px 20px", animation: "fadeUp 0.5s ease 0.18s both" }}>
+              <div style={{ color: "#475569", fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "14px" }}>▸ Package Composition</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {[
+                  { label: "Tax Credits & Abatements", pct: s.taxCredit, color: "#3b82f6" },
+                  { label: "Direct Grant Funding", pct: s.grants, color: s.color },
+                  { label: "Infrastructure Aid", pct: s.infrastructure, color: "#f59e0b" },
+                  { label: "Workforce Development", pct: s.workforce, color: "#a78bfa" },
+                ].map(({ label, pct, color }) => (
+                  <div key={label}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                      <span style={{ color: "#475569", fontSize: "10px" }}>{label}</span>
+                      <span style={{ color, fontSize: "10px", fontWeight: 700 }}>{formatFull(total * pct)}</span>
+                    </div>
+                    <div style={{ height: "3px", background: "rgba(255,255,255,0.05)", borderRadius: "2px" }}>
+                      <div style={{ width: `${pct * 100}%`, height: "100%", background: color, borderRadius: "2px", boxShadow: `0 0 5px ${color}50`, transition: "width 0.4s" }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ color: "#1e3a5f", fontSize: "9px", marginTop: "14px", paddingTop: "10px", borderTop: "1px solid rgba(255,255,255,0.03)", lineHeight: 1.5 }}>
+                * Indicative composition. Actual structure varies by project, location, and negotiation outcome.
+              </div>
+            </div>
+          </div>
+
+          {/* Live comparison bar */}
+          <div style={{ background: "rgba(10,22,40,0.75)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "10px", padding: "18px 22px", animation: "fadeUp 0.5s ease 0.2s both" }}>
+            <div style={{ color: "#475569", fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "14px" }}>▸ Live State Comparison — Ranked by Estimated Package at Current Inputs</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {Object.entries(STATES)
+                .map(([code, st]) => ({ code, st, val: capital * st.capexRate + jobs * st.jobRate }))
+                .sort((a, b) => b.val - a.val)
+                .map(({ code, st, val }, i) => {
+                  const isSelected = code === sel;
+                  return (
+                    <div key={code} style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", opacity: isSelected ? 1 : 0.55, transition: "opacity 0.2s" }} onClick={() => setSel(code)}>
+                      <div style={{ width: "14px", color: "#475569", fontSize: "9px", textAlign: "right" }}>#{i + 1}</div>
+                      <div style={{ width: "28px", color: isSelected ? st.color : "#475569", fontSize: "10px", fontWeight: 700, transition: "color 0.3s" }}>{code}</div>
+                      <div style={{ flex: 1, height: "4px", background: "rgba(255,255,255,0.04)", borderRadius: "2px" }}>
+                        <div style={{ width: `${(val / maxVal) * 100}%`, height: "100%", background: st.color, borderRadius: "2px", boxShadow: isSelected ? `0 0 8px ${st.color}` : "none", transition: "width 0.5s, box-shadow 0.3s" }} />
+                      </div>
+                      <div style={{ width: "90px", color: isSelected ? st.color : "#475569", fontSize: "10px", fontWeight: isSelected ? 700 : 400, textAlign: "right", transition: "color 0.3s" }}>{formatFull(val)}</div>
+                    </div>
+                  );
+                })}
+            </div>
+            <div style={{ color: "#1e3a5f", fontSize: "9px", letterSpacing: "0.08em", marginTop: "12px", paddingTop: "10px", borderTop: "1px solid rgba(255,255,255,0.03)" }}>
+              Click any state in the comparison to switch. Sources: Area Development Top States 2025, CNBC America's Top States 2024–2025, Five Points Strategic Advisors State Manufacturing Incentives Guide 2025, Cherry Bekaert Top 10 States for Business Tax Credits.
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </>
+  );
+}
