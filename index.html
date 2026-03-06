@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Industrial Site Incentive Calculator — Hyphen Strategies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #060b14;
+    --bg2: #0a1628;
+    --panel: rgba(10,22,40,0.85);
+    --border: rgba(255,255,255,0.07);
+    --text-muted: #475569;
+    --text-dim: #334155;
+    --text-mid: #64748b;
+    --text-soft: #94a3b8;
+    --mono: 'IBM Plex Mono', monospace;
+    --display: 'Bebas Neue', sans-serif;
+    --state-color: #ef4444;
+    --state-accent: #fca5a5;
+  }
+
+  html, body {
+    min-height: 100vh;
+    background: var(--bg);
+    font-family: var(--mono);
+    color: #f1f5f9;
+    overflow-x: hidden;
+  }
+
+  body {
+    background: linear-gradient(135deg, #060b14 0%, #0a1628 60%, #060b14 100%);
+    padding: 32px 20px 60px;
+    position: relative;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(30,58,95,0.13) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(30,58,95,0.13) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  #glow-top {
+    position: fixed; top: -20%; right: -10%;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(239,68,68,0.06) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+    transition: background 0.5s;
+  }
+  #glow-bot {
+    position: fixed; bottom: -20%; left: -10%;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(59,130,246,0.05) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .wrapper {
+    max-width: 820px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulseGlow {
+    0%,100% { text-shadow: 0 0 40px var(--state-color), 0 0 80px rgba(239,68,68,0.3); }
+    50%      { text-shadow: 0 0 70px var(--state-color), 0 0 140px rgba(239,68,68,0.5); }
+  }
+
+  .fade-up { animation: fadeUp 0.5s ease both; }
+  .fade-up-1 { animation: fadeUp 0.5s ease 0.05s both; }
+  .fade-up-2 { animation: fadeUp 0.5s ease 0.10s both; }
+  .fade-up-3 { animation: fadeUp 0.5s ease 0.15s both; }
+  .fade-up-4 { animation: fadeUp 0.5s ease 0.20s both; }
+
+  /* ── Panel ── */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 24px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  .section-label {
+    color: var(--text-muted);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .header-bar {
+    width: 3px;
+    height: 28px;
+    background: linear-gradient(180deg, var(--state-color), rgba(239,68,68,0.5));
+    border-radius: 2px;
+    transition: background 0.4s;
+  }
+  .header-tag {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--state-color);
+    transition: color 0.4s;
+    margin-bottom: 2px;
+  }
+  .header-title {
+    font-family: var(--display);
+    font-size: 22px;
+    letter-spacing: 0.12em;
+    color: #f1f5f9;
+  }
+
+  /* ── State grid ── */
+  .state-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+  .state-btn {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 7px;
+    padding: 10px 4px;
+    color: #64748b;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 11px;
+    text-align: center;
+    letter-spacing: 0.05em;
+    transition: all 0.18s;
+  }
+  .state-btn:hover { background: rgba(255,255,255,0.05); color: #94a3b8; }
+  .state-btn .flag { font-size: 16px; margin-bottom: 3px; }
+  .state-btn .code { font-weight: 400; }
+  .state-btn .rank { font-size: 9px; color: #334155; margin-top: 1px; }
+  .state-btn.active { font-weight: 700; }
+
+  /* ── Info bar ── */
+  .info-bar {
+    border-radius: 8px;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.4s;
+  }
+  .info-bar .flag-lg { font-size: 22px; }
+  .info-bar .state-name {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--state-accent);
+    transition: color 0.4s;
+  }
+  .info-bar .state-note { font-size: 10px; color: #64748b; margin-top: 2px; }
+  .info-bar .stat-group {
+    text-align: right;
+    padding-left: 12px;
+    border-left: 1px solid rgba(255,255,255,0.06);
+    min-width: 70px;
+  }
+  .info-bar .stat-label { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+  .info-bar .stat-val { font-size: 15px; font-weight: 700; color: var(--state-color); transition: color 0.4s; }
+
+  /* ── Sliders ── */
+  .slider-wrap { display: flex; flex-direction: column; gap: 30px; }
+  .slider-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .slider-label-left { display: flex; align-items: center; gap: 8px; }
+  .slider-icon { font-size: 14px; }
+  .slider-text { color: #94a3b8; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; }
+  .slider-val-badge {
+    border-radius: 4px;
+    padding: 4px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    background: rgba(255,255,255,0.04);
+    transition: border-color 0.4s, color 0.4s, box-shadow 0.4s;
+  }
+  .slider-track-wrap { position: relative; height: 6px; margin-bottom: 8px; }
+  .slider-track-bg {
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,0.06);
+    border-radius: 3px;
+  }
+  .slider-track-fill {
+    position: absolute; top: 0; left: 0;
+    height: 100%; border-radius: 3px;
+    transition: width 0.04s;
+  }
+  .slider-thumb {
+    position: absolute; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    pointer-events: none;
+    transition: left 0.04s;
+  }
+  input[type=range] {
+    position: absolute;
+    inset: -8px 0;
+    width: 100%;
+    opacity: 0;
+    cursor: pointer;
+    height: 22px;
+    -webkit-appearance: none;
+  }
+  .slider-minmax { display: flex; justify-content: space-between; color: #334155; font-size: 10px; }
+
+  /* ── Divider ── */
+  .divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent); margin: 22px 0; }
+
+  /* ── Sub-metric cards ── */
+  .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+  .metric-card {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .metric-card .mlabel { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #64748b; margin-bottom: 6px; }
+  .metric-card .mval { font-size: 16px; font-weight: 800; }
+
+  /* ── Total box ── */
+  .total-box {
+    border-radius: 10px;
+    padding: 24px;
+    text-align: center;
+    transition: all 0.4s;
+  }
+  .total-label {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--state-accent);
+    transition: color 0.4s;
+    margin-bottom: 8px;
+  }
+  .total-amount {
+    font-family: var(--display);
+    font-size: clamp(40px, 8vw, 68px);
+    letter-spacing: 0.05em;
+    color: var(--state-color);
+    line-height: 1;
+    animation: pulseGlow 3s ease-in-out infinite;
+    transition: color 0.4s;
+  }
+  .total-delta { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; }
+  .total-delta .baseline-text { color: #334155; font-size: 10px; }
+  .total-delta .delta-val { font-size: 11px; font-weight: 700; }
+  .total-formula { color: #1e3a5f; font-size: 9px; letter-spacing: 0.1em; margin-top: 6px; }
+
+  /* ── Status bar ── */
+  .status-bar {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 22px; padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .dot-row { display: flex; gap: 5px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .status-text { color: #334155; font-size: 10px; letter-spacing: 0.14em; }
+  .live-badge { margin-left: auto; color: #22c55e; font-size: 10px; }
+
+  /* ── Two-col layout ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* ── Programs list ── */
+  .programs-list { display: flex; flex-direction: column; gap: 12px; }
+  .program-item { border-left: 2px solid rgba(255,255,255,0.1); padding-left: 10px; transition: border-color 0.4s; }
+  .program-name { font-size: 11px; font-weight: 700; margin-bottom: 2px; color: var(--state-accent); transition: color 0.4s; }
+  .program-detail { font-size: 10px; color: #475569; line-height: 1.5; }
+
+  /* ── Composition bars ── */
+  .comp-list { display: flex; flex-direction: column; gap: 10px; }
+  .comp-row {}
+  .comp-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .comp-label { font-size: 10px; color: #475569; }
+  .comp-val { font-size: 10px; font-weight: 700; }
+  .comp-track { height: 3px; background: rgba(255,255,255,0.05); border-radius: 2px; }
+  .comp-fill { height: 100%; border-radius: 2px; transition: width 0.4s; }
+
+  /* ── Comparison bars ── */
+  .compare-list { display: flex; flex-direction: column; gap: 8px; }
+  .compare-row {
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer; transition: opacity 0.2s;
+  }
+  .compare-row:not(.selected) { opacity: 0.5; }
+  .compare-row:hover { opacity: 0.85 !important; }
+  .cmp-rank { width: 14px; color: #475569; font-size: 9px; text-align: right; }
+  .cmp-code { width: 28px; font-size: 10px; font-weight: 700; transition: color 0.3s; }
+  .cmp-track { flex: 1; height: 4px; background: rgba(255,255,255,0.04); border-radius: 2px; }
+  .cmp-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+  .cmp-val { width: 90px; font-size: 10px; text-align: right; transition: color 0.3s; }
+
+  .footnote { color: #1e3a5f; font-size: 9px; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.03); line-height: 1.5; }
+
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 2px; }
+
+  @media (max-width: 600px) {
+    .state-grid { grid-template-columns: repeat(5,1fr); }
+    .two-col { grid-template-columns: 1fr; }
+    .info-bar { flex-wrap: wrap; }
+    .metric-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="glow-top"></div>
+<div id="glow-bot"></div>
+
+<div class="wrapper">
+
+  <!-- Header -->
+  <div class="header fade-up">
+    <div class="header-bar" id="header-bar"></div>
+    <div>
+      <div class="header-tag" id="header-tag">Hyphen Strategies · Site Selection Advisory</div>
+      <div class="header-title">Industrial Site Incentive Calculator</div>
+    </div>
+  </div>
+
+  <!-- State Selector -->
+  <div class="panel fade-up-1">
+    <div class="section-label">▸ Select Target State — Top 10 for Industrial Site Selection (Area Development / CNBC, 2025)</div>
+    <div class="state-grid" id="state-grid"></div>
+  </div>
+
+  <!-- Info Bar -->
+  <div class="info-bar fade-up-1" id="info-bar">
+    <div class="flag-lg" id="info-flag"></div>
+    <div style="flex:1">
+      <div class="state-name" id="info-name"></div>
+      <div class="state-note" id="info-note"></div>
+    </div>
+    <div class="stat-group">
+      <div class="stat-label">Capex Rate</div>
+      <div class="stat-val" id="info-capex-rate"></div>
+    </div>
+    <div class="stat-group">
+      <div class="stat-label">Per Job</div>
+      <div class="stat-val" id="info-job-rate"></div>
+    </div>
+  </div>
+
+  <!-- Main Panel -->
+  <div class="panel fade-up-2" id="main-panel">
+    <div class="status-bar">
+      <div class="dot-row">
+        <div class="dot" id="dot1" style="background:#ef4444; box-shadow: 0 0 5px #ef4444"></div>
+        <div class="dot" style="background:#3b82f6; box-shadow:0 0 5px #3b82f6"></div>
+        <div class="dot" style="background:#f59e0b; box-shadow:0 0 5px #f59e0b"></div>
+      </div>
+      <span class="status-text" id="status-text">REAL-TIME ANALYSIS · STATE PROGRAMS</span>
+      <span class="live-badge">● LIVE</span>
+    </div>
+
+    <div class="slider-wrap">
+      <!-- Capital Slider -->
+      <div>
+        <div class="slider-row">
+          <div class="slider-label-left">
+            <span class="slider-icon" style="color:#3b82f6">◈</span>
+            <span class="slider-text">Capital Investment</span>
+          </div>
+          <div class="slider-val-badge" id="capital-badge" style="color:#3b82f6;border:1px solid rgba(59,130,246,0.4);box-shadow:0 0 10px rgba(59,130,246,0.15)">$100.0M</div>
+        </div>
+        <div class="slider-track-wrap">
+          <div class="slider-track-bg"></div>
+          <div class="slider-track-fill" id="capital-fill" style="background:linear-gradient(90deg,rgba(59,130,246,0.7),#3b82f6);box-shadow:0 0 8px rgba(59,130,246,0.4);width:18.4%"></div>
+          <div class="slider-thumb" id="capital-thumb" style="background:#3b82f6;box-shadow:0 0 0 3px rgba(0,0,0,0.6),0 0 12px #3b82f6;left:18.4%"></div>
+          <input type="range" id="capital-slider" min="10000000" max="500000000" value="100000000" step="1000000">
+        </div>
+        <div class="slider-minmax"><span>$10M</span><span>$500M</span></div>
+      </div>
+
+      <!-- Jobs Slider -->
+      <div>
+        <div class="slider-row">
+          <div class="slider-label-left">
+            <span class="slider-icon" id="jobs-icon" style="color:#ef4444">◉</span>
+            <span class="slider-text">New Jobs Created</span>
+          </div>
+          <div class="slider-val-badge" id="jobs-badge" style="color:#ef4444;border:1px solid rgba(239,68,68,0.4);box-shadow:0 0 10px rgba(239,68,68,0.15)">250 jobs</div>
+        </div>
+        <div class="slider-track-wrap">
+          <div class="slider-track-bg"></div>
+          <div class="slider-track-fill" id="jobs-fill" style="width:21.1%"></div>
+          <div class="slider-thumb" id="jobs-thumb" style="left:21.1%"></div>
+          <input type="range" id="jobs-slider" min="50" max="1000" value="250" step="1">
+        </div>
+        <div class="slider-minmax"><span>50 jobs</span><span>1,000 jobs</span></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Metric Cards -->
+    <div class="metric-grid">
+      <div class="metric-card">
+        <div class="mlabel">◈ Capex Incentive (<span id="mc-capex-rate">5</span>%)</div>
+        <div class="mval" id="mc-capex-val" style="color:#3b82f6">$5,000,000</div>
+      </div>
+      <div class="metric-card">
+        <div class="mlabel">◉ Jobs Incentive (<span id="mc-job-rate">$2,500</span>/job)</div>
+        <div class="mval" id="mc-job-val" style="color:#ef4444">$625,000</div>
+      </div>
+    </div>
+
+    <!-- Total -->
+    <div class="total-box" id="total-box">
+      <div class="total-label" id="total-label">▸ Estimated State Incentive Package</div>
+      <div class="total-amount" id="total-amount">$0</div>
+      <div class="total-delta">
+        <span class="baseline-text">vs. generic baseline:</span>
+        <span class="delta-val" id="delta-val"></span>
+      </div>
+      <div class="total-formula" id="total-formula">FORMULA: (5% × CAPEX) + ($2,500 × JOBS)</div>
+    </div>
+  </div>
+
+  <!-- Programs + Breakdown -->
+  <div class="two-col fade-up-3">
+    <div class="panel" style="padding:18px 20px">
+      <div class="section-label" id="prog-label">▸ Key Programs</div>
+      <div class="programs-list" id="programs-list"></div>
+    </div>
+    <div class="panel" style="padding:18px 20px">
+      <div class="section-label">▸ Package Composition</div>
+      <div class="comp-list" id="comp-list"></div>
+      <div class="footnote">* Indicative composition. Actual structure varies by project, location, and negotiation outcome.</div>
+    </div>
+  </div>
+
+  <!-- Comparison -->
+  <div class="panel fade-up-4" style="padding:18px 22px">
+    <div class="section-label">▸ Live State Comparison — Ranked by Estimated Package at Current Inputs</div>
+    <div class="compare-list" id="compare-list"></div>
+    <div class="footnote">Click any state to switch. Sources: Area Development Top States 2025, CNBC America's Top States 2024–2025, Five Points Strategic Advisors State Manufacturing Incentives Guide 2025, Cherry Bekaert Top 10 States for Business Tax Credits.</div>
+  </div>
+
+</div><!-- /wrapper -->
+
+<script>
+const STATES = {
+  GA: { name:"Georgia", rank:1, flag:"🍑", capexRate:0.058, jobRate:4000, taxCredit:0.38, grants:0.22, infrastructure:0.20, workforce:0.20, color:"#ef4444", accent:"#fca5a5",
+    note:"#1 for doing business 12 consecutive years (Area Development, 2025)",
+    programs:[
+      {name:"Job Tax Credit",detail:"Up to $4,000/job annually for 5 years; lower thresholds in rural areas"},
+      {name:"Investment Tax Credit",detail:"1%–8% of qualified capex for manufacturers (3+ yrs in state)"},
+      {name:"Quick Start Training",detail:"Free, customized workforce training — one of the nation's best"},
+      {name:"OneGeorgia Authority",detail:"Grants & loans for rural and less-developed county projects"},
+    ]
+  },
+  TX: { name:"Texas", rank:2, flag:"⭐", capexRate:0.050, jobRate:5000, taxCredit:0.30, grants:0.28, infrastructure:0.22, workforce:0.20, color:"#3b82f6", accent:"#93c5fd",
+    note:"#1 for site availability & workforce (Area Development 2025); no corporate income tax",
+    programs:[
+      {name:"Texas Enterprise Fund (TEF)",detail:"$1,000–$10,000 per job created; requires significant capex"},
+      {name:"Sales Tax Exemptions",detail:"Machinery, equipment & raw materials used in production"},
+      {name:"Freeport Exemption",detail:"Tax relief on goods-in-transit within 175 days (local approval)"},
+      {name:"Chapter 313 Successor",detail:"Local property tax abatements for large industrial projects"},
+    ]
+  },
+  NC: { name:"North Carolina", rank:3, flag:"🌲", capexRate:0.047, jobRate:3500, taxCredit:0.35, grants:0.25, infrastructure:0.20, workforce:0.20, color:"#8b5cf6", accent:"#c4b5fd",
+    note:"#1 for qualified labor access; Amazon committed $10B in data centers (CNBC 2025)",
+    programs:[
+      {name:"Job Development Investment Grant (JDIG)",detail:"Performance-based grants tied to new payroll over up to 12 years"},
+      {name:"One NC Fund",detail:"Discretionary cash grants for highly competitive projects"},
+      {name:"Site Development Fund",detail:"Infrastructure readiness funding for industrial sites"},
+      {name:"NC Community College Training",detail:"Customized workforce training grants for new facilities"},
+    ]
+  },
+  SC: { name:"South Carolina", rank:4, flag:"🌴", capexRate:0.055, jobRate:7500, taxCredit:0.32, grants:0.28, infrastructure:0.22, workforce:0.18, color:"#f97316", accent:"#fdba74",
+    note:"#1 for business incentive programs (Area Development 2025); top site readiness state",
+    programs:[
+      {name:"Job Development Credit (JDC)",detail:"Payroll tax rebate; up to $25,000/job depending on county tier"},
+      {name:"Economic Development Bonds",detail:"Infrastructure funding tied to job creation thresholds"},
+      {name:"Sales Tax Exemptions",detail:"Manufacturing equipment, raw materials & energy exempt"},
+      {name:"ReadySC Training",detail:"Free, company-specific workforce training for new facilities"},
+    ]
+  },
+  TN: { name:"Tennessee", rank:5, flag:"🎵", capexRate:0.048, jobRate:4500, taxCredit:0.35, grants:0.25, infrastructure:0.22, workforce:0.18, color:"#f59e0b", accent:"#fcd34d",
+    note:"#1 for business incentive programs (Area Development 2025); no state income tax",
+    programs:[
+      {name:"Jobs Tax Credit",detail:"$4,500 per new job; enhanced credits available by location"},
+      {name:"FastTrack Job Training Assistance",detail:"Grants for workforce training based on new hires (min. 25 jobs)"},
+      {name:"Industrial Infrastructure Program (TIIP)",detail:"Infrastructure grants for substantial capital investments"},
+      {name:"Sales & Use Tax Exemptions",detail:"Manufacturing equipment, industrial machinery & materials"},
+    ]
+  },
+  IN: { name:"Indiana", rank:6, flag:"🏎️", capexRate:0.10, jobRate:3000, taxCredit:0.35, grants:0.25, infrastructure:0.20, workforce:0.20, color:"#22c55e", accent:"#86efac",
+    note:"#6 overall; top 5 for site readiness, climate resilience & EV investment (Area Development 2025)",
+    programs:[
+      {name:"Hoosier Business Investment (HBI) Credit",detail:"Up to 10% of qualified capital investment costs"},
+      {name:"Skills Enhancement Fund (SEF)",detail:"Training grants covering up to 50% of eligible workforce costs"},
+      {name:"EDGE Tax Credit",detail:"Payroll-based tax credit for creation of significant new jobs"},
+      {name:"Redevelopment Tax Credit",detail:"Investment in certified tech parks and brownfield redevelopment"},
+    ]
+  },
+  VA: { name:"Virginia", rank:7, flag:"🏛️", capexRate:0.045, jobRate:2500, taxCredit:0.35, grants:0.28, infrastructure:0.18, workforce:0.19, color:"#06b6d4", accent:"#67e8f9",
+    note:"#1 for business in CNBC 2024; top state for qualified labor access (Area Development 2025)",
+    programs:[
+      {name:"Virginia Jobs Investment Program (VJIP)",detail:"Up to $1,000/job for training; requires min. 25 manufacturing jobs"},
+      {name:"Enterprise Zone Real Property Grant",detail:"Up to $500K cash grant for qualifying real property investment"},
+      {name:"Major Business Facility Job Tax Credit",detail:"$1,000 per net new job created above threshold"},
+      {name:"Governor's Opportunity Fund",detail:"Discretionary grants for highly competitive projects"},
+    ]
+  },
+  OH: { name:"Ohio", rank:8, flag:"🌻", capexRate:0.052, jobRate:3800, taxCredit:0.36, grants:0.24, infrastructure:0.22, workforce:0.18, color:"#ec4899", accent:"#f9a8d4",
+    note:"Top 5 overall; #2 for site availability, water access & manufacturing (Area Development 2025)",
+    programs:[
+      {name:"Job Creation Tax Credit (JCTC)",detail:"Refundable credit based on state income tax withheld; up to 15 years"},
+      {name:"Enterprise Zone Program",detail:"Property tax abatements for up to 15 years in designated zones"},
+      {name:"Workforce Training Grants",detail:"Up to 50% of eligible training costs funded by state"},
+      {name:"Ohio Tax Credit Authority",detail:"Negotiated credits for significant capital investment projects"},
+    ]
+  },
+  FL: { name:"Florida", rank:9, flag:"🌊", capexRate:0.043, jobRate:3000, taxCredit:0.33, grants:0.27, infrastructure:0.22, workforce:0.18, color:"#0ea5e9", accent:"#7dd3fc",
+    note:"Top 5 CNBC 2024; #1 state economy; fastest-growing labor force; no state income tax",
+    programs:[
+      {name:"Qualified Target Industry (QTI) Tax Refund",detail:"Up to $3,000/job ($6,000 in rural areas) for target industries"},
+      {name:"Capital Investment Tax Credit (CITC)",detail:"Annual credit up to 5% of eligible capex for up to 20 years"},
+      {name:"Job Growth Grant Fund (JGGF)",detail:"Infrastructure improvements & workforce training grants"},
+      {name:"Innovation Incentive Program",detail:"For high-impact projects in target industries"},
+    ]
+  },
+  MI: { name:"Michigan", rank:10, flag:"🚗", capexRate:0.050, jobRate:3500, taxCredit:0.35, grants:0.25, infrastructure:0.22, workforce:0.18, color:"#a855f7", accent:"#d8b4fe",
+    note:"Top 10 CNBC 2024 & 2025; rising performer for EV & advanced manufacturing investment",
+    programs:[
+      {name:"Michigan Business Development Program",detail:"Performance-based grants for job creation and capital investment"},
+      {name:"MEGA Tax Credit",detail:"Up to 20-year single business tax credit for major projects"},
+      {name:"Strategic Site Readiness Program",detail:"Site preparation grants for large-scale industrial projects"},
+      {name:"Going PRO Talent Fund",detail:"Employer-based workforce training grants"},
+    ]
+  },
+};
+
+// ─── State ───
+let selectedState = 'GA';
+let capital = 100_000_000;
+let jobs = 250;
+let animRaf = null;
+let animStart = null;
+let animFrom = 0;
+let animTarget = 0;
+let currentDisplayed = 0;
+
+// ─── Helpers ───
+function fmtFull(v) {
+  return new Intl.NumberFormat('en-US', {style:'currency',currency:'USD',minimumFractionDigits:0,maximumFractionDigits:0}).format(v);
+}
+function fmtCurrency(v) {
+  if (v >= 1e9) return `$${(v/1e9).toFixed(2)}B`;
+  if (v >= 1e6) return `$${(v/1e6).toFixed(1)}M`;
+  return `$${v.toLocaleString()}`;
+}
+function pct(val, min, max) { return ((val - min) / (max - min)) * 100; }
+function setCSSVar(name, val) { document.documentElement.style.setProperty(name, val); }
+
+// ─── Animated counter ───
+function animateTo(target) {
+  if (animRaf) cancelAnimationFrame(animRaf);
+  animFrom = currentDisplayed;
+  animTarget = target;
+  animStart = performance.now();
+  function step(now) {
+    const progress = Math.min((now - animStart) / 600, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const val = Math.round(animFrom + (animTarget - animFrom) * eased);
+    currentDisplayed = val;
+    document.getElementById('total-amount').textContent = fmtFull(val);
+    if (progress < 1) animRaf = requestAnimationFrame(step);
+  }
+  animRaf = requestAnimationFrame(step);
+}
+
+// ─── Build state grid ───
+function buildStateGrid() {
+  const grid = document.getElementById('state-grid');
+  grid.innerHTML = '';
+  Object.entries(STATES).forEach(([code, s]) => {
+    const btn = document.createElement('button');
+    btn.className = 'state-btn' + (code === selectedState ? ' active' : '');
+    btn.dataset.code = code;
+    btn.innerHTML = `<div class="flag">${s.flag}</div><div class="code">${code}</div><div class="rank">#${s.rank}</div>`;
+    btn.addEventListener('click', () => selectState(code));
+    grid.appendChild(btn);
+  });
+}
+
+// ─── Select state ───
+function selectState(code) {
+  selectedState = code;
+  const s = STATES[code];
+
+  // Update CSS vars
+  document.documentElement.style.setProperty('--state-color', s.color);
+  document.documentElement.style.setProperty('--state-accent', s.accent);
+
+  // Glow
+  document.getElementById('glow-top').style.background =
+    `radial-gradient(circle, ${s.color}0a 0%, transparent 70%)`;
+
+  // Header
+  document.getElementById('header-bar').style.background =
+    `linear-gradient(180deg, ${s.color}, ${s.color}60)`;
+  document.getElementById('header-tag').style.color = s.color;
+
+  // State buttons
+  document.querySelectorAll('.state-btn').forEach(btn => {
+    const c = btn.dataset.code;
+    const st = STATES[c];
+    btn.classList.toggle('active', c === code);
+    if (c === code) {
+      btn.style.background = `${st.color}18`;
+      btn.style.border = `1px solid ${st.color}60`;
+      btn.style.boxShadow = `0 0 14px ${st.color}20`;
+      btn.style.color = st.accent;
+      btn.querySelector('.code').style.fontWeight = '700';
+      btn.querySelector('.rank').style.color = st.color;
+    } else {
+      btn.style.background = 'rgba(255,255,255,0.02)';
+      btn.style.border = '1px solid rgba(255,255,255,0.07)';
+      btn.style.boxShadow = 'none';
+      btn.style.color = '#64748b';
+      btn.querySelector('.code').style.fontWeight = '400';
+      btn.querySelector('.rank').style.color = '#334155';
+    }
+  });
+
+  // Info bar
+  document.getElementById('info-bar').style.background = `${s.color}0d`;
+  document.getElementById('info-bar').style.border = `1px solid ${s.color}30`;
+  document.getElementById('info-flag').textContent = s.flag;
+  document.getElementById('info-name').textContent = `${s.name.toUpperCase()} — RANK #${s.rank}`;
+  document.getElementById('info-note').textContent = s.note;
+  document.getElementById('info-capex-rate').textContent = `${(s.capexRate * 100).toFixed(0)}%`;
+  document.getElementById('info-job-rate').textContent = fmtFull(s.jobRate);
+
+  // Dot color
+  document.getElementById('dot1').style.background = s.color;
+  document.getElementById('dot1').style.boxShadow = `0 0 5px ${s.color}`;
+
+  // Status text
+  document.getElementById('status-text').textContent =
+    `REAL-TIME ANALYSIS · ${s.name.toUpperCase()} STATE PROGRAMS`;
+
+  // Jobs slider color
+  document.getElementById('jobs-icon').style.color = s.color;
+  document.getElementById('jobs-badge').style.color = s.color;
+  document.getElementById('jobs-badge').style.borderColor = `${s.color}50`;
+  document.getElementById('jobs-badge').style.boxShadow = `0 0 10px ${s.color}20`;
+
+  // Programs
+  document.getElementById('prog-label').textContent = `▸ Key ${s.name} Programs`;
+  const progList = document.getElementById('programs-list');
+  progList.innerHTML = '';
+  s.programs.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'program-item';
+    div.style.borderLeftColor = `${s.color}50`;
+    div.innerHTML = `<div class="program-name">${p.name}</div><div class="program-detail">${p.detail}</div>`;
+    progList.appendChild(div);
+  });
+
+  updateCalc();
+}
+
+// ─── Update calculation ───
+function updateCalc() {
+  const s = STATES[selectedState];
+  const capexInc = capital * s.capexRate;
+  const jobInc = jobs * s.jobRate;
+  const total = capexInc + jobInc;
+  const baseline = capital * 0.05 + jobs * 2500;
+  const delta = total - baseline;
+
+  // Metric cards
+  document.getElementById('mc-capex-rate').textContent = (s.capexRate * 100).toFixed(0);
+  document.getElementById('mc-capex-val').textContent = fmtFull(capexInc);
+  document.getElementById('mc-capex-val').style.color = '#3b82f6';
+  document.getElementById('mc-job-rate').textContent = fmtFull(s.jobRate);
+  document.getElementById('mc-job-val').textContent = fmtFull(jobInc);
+  document.getElementById('mc-job-val').style.color = s.color;
+
+  // Total box
+  const totalBox = document.getElementById('total-box');
+  totalBox.style.background = `${s.color}08`;
+  totalBox.style.border = `1px solid ${s.color}30`;
+  totalBox.style.boxShadow = `0 0 50px ${s.color}06`;
+  document.getElementById('total-label').textContent = `▸ Estimated ${s.name} Incentive Package`;
+  document.getElementById('total-amount').style.color = s.color;
+  animateTo(total);
+
+  // Delta
+  const deltaEl = document.getElementById('delta-val');
+  const sign = delta >= 0 ? '+' : '-';
+  deltaEl.textContent = `${sign}${fmtFull(Math.abs(delta))} ${delta >= 0 ? '▲' : '▼'}`;
+  deltaEl.style.color = delta >= 0 ? '#22c55e' : '#ef4444';
+
+  // Formula
+  document.getElementById('total-formula').textContent =
+    `FORMULA: (${(s.capexRate * 100).toFixed(0)}% × CAPEX) + (${fmtFull(s.jobRate)} × JOBS)`;
+
+  // Composition bars
+  const compData = [
+    {label:'Tax Credits & Abatements', pct: s.taxCredit, color:'#3b82f6'},
+    {label:'Direct Grant Funding',      pct: s.grants,     color: s.color},
+    {label:'Infrastructure Aid',        pct: s.infrastructure, color:'#f59e0b'},
+    {label:'Workforce Development',     pct: s.workforce,  color:'#a78bfa'},
+  ];
+  const compList = document.getElementById('comp-list');
+  compList.innerHTML = '';
+  compData.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'comp-row';
+    div.innerHTML = `
+      <div class="comp-header">
+        <span class="comp-label">${c.label}</span>
+        <span class="comp-val" style="color:${c.color}">${fmtFull(total * c.pct)}</span>
+      </div>
+      <div class="comp-track">
+        <div class="comp-fill" style="width:${c.pct*100}%;background:${c.color};box-shadow:0 0 5px ${c.color}50"></div>
+      </div>`;
+    compList.appendChild(div);
+  });
+
+  // Comparison
+  updateComparison(total);
+}
+
+// ─── Comparison bars ───
+function updateComparison() {
+  const s = STATES[selectedState];
+  const ranked = Object.entries(STATES)
+    .map(([code, st]) => ({ code, st, val: capital * st.capexRate + jobs * st.jobRate }))
+    .sort((a, b) => b.val - a.val);
+  const maxVal = ranked[0].val;
+
+  const list = document.getElementById('compare-list');
+  list.innerHTML = '';
+  ranked.forEach(({ code, st, val }, i) => {
+    const isSelected = code === selectedState;
+    const row = document.createElement('div');
+    row.className = 'compare-row' + (isSelected ? ' selected' : '');
+    row.dataset.code = code;
+    row.innerHTML = `
+      <div class="cmp-rank">#${i+1}</div>
+      <div class="cmp-code" style="color:${isSelected ? st.color : '#475569'}">${code}</div>
+      <div class="cmp-track">
+        <div class="cmp-fill" style="width:${(val/maxVal)*100}%;background:${st.color};${isSelected ? `box-shadow:0 0 8px ${st.color}` : ''}"></div>
+      </div>
+      <div class="cmp-val" style="color:${isSelected ? st.color : '#475569'};font-weight:${isSelected ? 700 : 400}">${fmtFull(val)}</div>`;
+    row.addEventListener('click', () => selectState(code));
+    list.appendChild(row);
+  });
+}
+
+// ─── Slider logic ───
+function updateSlider(sliderId, fillId, thumbId, badgeId, min, max, val, fmtFn, accentColor) {
+  const p = pct(val, min, max);
+  document.getElementById(fillId).style.width = p + '%';
+  const thumb = document.getElementById(thumbId);
+  thumb.style.left = p + '%';
+  thumb.style.background = accentColor;
+  thumb.style.boxShadow = `0 0 0 3px rgba(0,0,0,0.6), 0 0 12px ${accentColor}`;
+  document.getElementById(badgeId).textContent = fmtFn(val);
+}
+
+function updateJobsSliderColor() {
+  const s = STATES[selectedState];
+  const fill = document.getElementById('jobs-fill');
+  fill.style.background = `linear-gradient(90deg, ${s.color}70, ${s.color})`;
+  fill.style.boxShadow = `0 0 8px ${s.color}50`;
+  const thumb = document.getElementById('jobs-thumb');
+  thumb.style.background = s.color;
+  thumb.style.boxShadow = `0 0 0 3px rgba(0,0,0,0.6), 0 0 12px ${s.color}`;
+}
+
+document.getElementById('capital-slider').addEventListener('input', function() {
+  capital = Number(this.value);
+  updateSlider('capital-slider','capital-fill','capital-thumb','capital-badge',
+    10_000_000,500_000_000,capital,fmtCurrency,'#3b82f6');
+  updateCalc();
+});
+
+document.getElementById('jobs-slider').addEventListener('input', function() {
+  jobs = Number(this.value);
+  const s = STATES[selectedState];
+  updateSlider('jobs-slider','jobs-fill','jobs-thumb','jobs-badge',
+    50,1000,jobs,v=>`${v.toLocaleString()} jobs`,s.color);
+  updateCalc();
+});
+
+// ─── Init ───
+buildStateGrid();
+selectState('GA');
+
+// Set initial capital slider fill
+const capitalFill = document.getElementById('capital-fill');
+capitalFill.style.background = 'linear-gradient(90deg, rgba(59,130,246,0.7), #3b82f6)';
+capitalFill.style.boxShadow = '0 0 8px rgba(59,130,246,0.5)';
+updateSlider('capital-slider','capital-fill','capital-thumb','capital-badge',
+  10_000_000,500_000_000,capital,fmtCurrency,'#3b82f6');
+</script>
+</body>
+</html>
